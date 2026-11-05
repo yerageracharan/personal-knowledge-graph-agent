@@ -71,7 +71,7 @@ The project includes an MCP server exposing:
 - `get_knowledge_graph`
 - `list_knowledge_sources`
 
-Claude Desktop can run it locally over stdio. ChatGPT custom MCP connections require a reachable HTTPS MCP endpoint and an account/workspace with custom MCP app support. See [docs/PROVIDERS.md](docs/PROVIDERS.md) for configuration.
+Claude Desktop can run it locally over stdio. Claude Desktop can connect to the local stdio MCP server. ChatGPT requires a supported custom-MCP account/workspace plus either Secure MCP Tunnel or a remote HTTPS endpoint; private remote deployments need OAuth 2.1. Current OpenAI guidance does not list Go as supporting custom MCP app connections. See [docs/PROVIDERS.md](docs/PROVIDERS.md) for exact limitations and setup.
 
 **Important:** MCP is the bridge that lets an assistant call this project's tools. It does not turn a ChatGPT Plus or Claude subscription into an API key for the app's internal model calls.
 
@@ -126,7 +126,9 @@ GitHub Actions runs the test suite on pushes and pull requests.
 - [x] OpenAI and OpenAI-compatible endpoint adapter
 - [x] Anthropic adapter
 - [x] Ollama / local OpenAI-compatible model support
-- [x] MCP tools for assistant integrations
+- [x] Local stdio MCP tools for Claude Desktop
+- [x] Development Streamable HTTP MCP transport
+- [ ] Secure Tunnel / OAuth 2.1 setup for ChatGPT remote MCP
 - [ ] Authentication and user isolation for remote MCP deployment
 - [ ] Vector embeddings and hybrid retrieval
 - [ ] Entity alias resolution and duplicate merging
