@@ -1,5 +1,7 @@
 """MCP tools for ChatGPT and Claude. Local default: python mcp_server.py"""
 import os
+from dotenv import load_dotenv
+load_dotenv()
 from mcp.server.fastmcp import FastMCP
 from src.service import KnowledgeService
 mcp=FastMCP("Personal Knowledge Graph")
