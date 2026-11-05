@@ -1,107 +1,141 @@
 # Personal Knowledge Graph Agent
 
 > **Agent #7 / 200 AI Agents in 200 Days**  
-> Turn scattered notes and documents into a connected, searchable map of knowledge.
+> Your documents, connected. A local-first knowledge graph that works with multiple LLM providers and exposes tools to ChatGPT and Claude through MCP.
 
-A local-first knowledge assistant that ingests TXT, Markdown and PDF files, extracts candidate entities and relationships, stores them in SQLite, visualises a graph, and retrieves evidence from your own documents.
+Turn PDFs, Markdown and text files into an evidence-backed graph of entities and relationships. Use a hosted model, a local open-source model, an OpenAI-compatible API, or no LLM at all.
 
 ## What it does
 
-- **Ingest:** upload TXT, Markdown and text-based PDF documents.
-- **Extract:** detect candidate people, organisations, technologies, concepts and acronyms using transparent local heuristics.
-- **Connect:** create relationships when entities appear together in the same sentence; detect a small set of explicit relation phrases.
-- **Visualise:** explore the resulting network.
-- **Search:** retrieve relevant evidence snippets from your documents using local TF-IDF.
-- **Keep control:** data stays in the local `data/` folder. No API key or hosted service is required.
+- **Ingest:** PDF, TXT and Markdown documents.
+- **Extract:** candidate entities and relationships using local heuristics or an LLM.
+- **Validate:** LLM-generated edges are accepted only when their evidence is an exact sentence from the source document.
+- **Visualise:** explore the graph in an interactive browser view.
+- **Ask:** retrieve relevant passages and optionally synthesize an answer with source citations.
+- **Integrate:** expose the knowledge base as MCP tools for compatible AI assistants.
+- **Stay portable:** SQLite storage; provider adapters are swappable.
 
-## Quick start
+## Quick start — Windows
 
 Python 3.10+ recommended.
 
-```bash
+```powershell
 git clone https://github.com/yerageracharan/personal-knowledge-graph-agent.git
 cd personal-knowledge-graph-agent
-
 python -m venv .venv
-# Windows PowerShell:
 .venv\Scripts\Activate.ps1
-# macOS/Linux:
-# source .venv/bin/activate
-
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-Open the local URL printed by Streamlit, upload a few documents, and explore the graph.
+Open the local Streamlit URL. Upload a few documents and explore the graph.
 
-## Run tests
+## Choose your model
 
-```bash
-pytest -q
+Use the sidebar in the app to select a provider. The app does not require an LLM: choose `none` for local heuristic extraction and retrieval.
+
+| Provider | Provider setting | Model example | Notes |
+|---|---|---|---|
+| OpenAI | `openai` | `gpt-4o-mini` | Requires OpenAI API key |
+| Anthropic | `anthropic` | `claude-3-5-haiku-latest` | Uses Anthropic Messages API |
+| Ollama | `ollama` | `llama3.1` | Local model; no hosted API key |
+| LM Studio / vLLM / compatible gateway | `openai-compatible` | Server's model ID | Any OpenAI Chat Completions-compatible endpoint |
+| No model | `none` | — | Offline baseline |
+
+For persistent defaults, copy `.env.example` to `.env` and fill in the values. Do not commit `.env` or API keys.
+
+Example for a local Ollama server:
+```env
+LLM_PROVIDER=ollama
+LLM_MODEL=llama3.1
+LLM_BASE_URL=http://localhost:11434/v1
+LLM_API_KEY=
 ```
+
+For a custom OpenAI-compatible API:
+```env
+LLM_PROVIDER=openai-compatible
+LLM_MODEL=your-model-id
+LLM_BASE_URL=https://your-provider.example/v1
+LLM_API_KEY=your-api-key
+```
+
+Provider setup and assistant integration details: [docs/PROVIDERS.md](docs/PROVIDERS.md).
+
+## Connect it to Claude or ChatGPT
+
+The project includes an MCP server exposing:
+- `add_text_document`
+- `search_knowledge`
+- `ask_knowledge`
+- `get_knowledge_graph`
+- `list_knowledge_sources`
+
+Claude Desktop can run it locally over stdio. ChatGPT custom MCP connections require a reachable HTTPS MCP endpoint and an account/workspace with custom MCP app support. See [docs/PROVIDERS.md](docs/PROVIDERS.md) for configuration.
+
+**Important:** MCP is the bridge that lets an assistant call this project's tools. It does not turn a ChatGPT Plus or Claude subscription into an API key for the app's internal model calls.
 
 ## Architecture
 
 ```text
-Documents (TXT / MD / PDF)
-          |
-          v
+PDF / TXT / Markdown
+        |
+        v
    Text extraction
-          |
-          v
- Candidate entity extraction
-          |
-          v
- Relationship discovery
-          |
-          v
- SQLite knowledge store
-       /       \
-      v         v
- Graph view   TF-IDF retrieval
-                  |
-                  v
-          Evidence snippets
+        |
+        v
+  LLM or heuristic extraction <---- OpenAI / Anthropic / Ollama / compatible API
+        |
+        v
+ Evidence validation + SQLite graph
+        |
+        +------> Interactive graph UI
+        |
+        +------> TF-IDF evidence retrieval
+        |                 |
+        |                 v
+        |          Optional LLM answer
+        |
+        +------> MCP tools <---- ChatGPT / Claude / other MCP clients
 ```
 
-## Project structure
+## Tests
 
-```text
-app.py                 Streamlit UI
-src/ingestion.py       TXT, Markdown and PDF extraction
-src/extraction.py      Candidate entities and relationships
-src/store.py           SQLite persistence
-src/search.py          Local TF-IDF evidence retrieval
-tests/test_core.py     Core tests
+```powershell
+pytest -q
 ```
 
-## Important limitations
+GitHub Actions runs the test suite on pushes and pull requests.
 
-This is a transparent baseline, not a fully autonomous reasoning system yet.
+## Privacy and limitations
 
-- Entity extraction uses heuristics; it can miss names and may produce false positives.
-- Co-occurrence is not proof of a real-world relationship. Every edge stores its supporting sentence so you can inspect it.
-- The search module retrieves evidence; it does not generate free-form answers.
-- Scanned PDFs need OCR before their text can be indexed.
-- The first version does not sync data to the cloud.
-
-**Design principle:** prefer traceable evidence over confident-sounding guesses. Treat extracted nodes and edges as candidates for review.
+- Local mode stores documents and the SQLite database on your machine.
+- When using a hosted LLM, relevant document text is sent to that provider for extraction or answer generation.
+- Local Ollama keeps inference on your machine, but network exposure depends on your Ollama configuration.
+- MCP clients can access the tools you expose. Do not expose a personal knowledge base to the public internet without authentication, authorization and per-user isolation.
+- Entity extraction is fallible. Graph edges are candidates with source evidence, not automatically verified facts.
+- Scanned PDFs require OCR; OCR is not included yet.
+- Search currently uses local TF-IDF retrieval, not a vector database or true graph multi-hop retrieval.
 
 ## Roadmap
 
-- [x] Local document ingestion
-- [x] Candidate entity and relation extraction
-- [x] SQLite persistence
+- [x] TXT / Markdown / PDF ingestion
+- [x] SQLite graph persistence
 - [x] Interactive graph visualisation
-- [x] Evidence-based retrieval
-- [ ] Entity deduplication and alias resolution
-- [ ] User-reviewed edge confirmation
-- [ ] Optional local LLM for structured extraction and answer synthesis
-- [ ] Graph-aware multi-hop retrieval
-- [ ] Export graph as JSON / GraphML
+- [x] Local retrieval baseline
+- [x] OpenAI and OpenAI-compatible endpoint adapter
+- [x] Anthropic adapter
+- [x] Ollama / local OpenAI-compatible model support
+- [x] MCP tools for assistant integrations
+- [ ] Authentication and user isolation for remote MCP deployment
+- [ ] Vector embeddings and hybrid retrieval
+- [ ] Entity alias resolution and duplicate merging
+- [ ] Graph-aware multi-hop question answering
+- [ ] OCR for scanned PDFs
+- [ ] Graph export (JSON / GraphML)
 
 ## Agent challenge
 
-**Agent #7 of 200.** The aim is to learn practical information extraction, graph modelling, retrieval, evaluation and agent workflow design by shipping a working tool.
+**Agent #7 of 200.** Built to explore information extraction, knowledge representation, LLM abstraction, evidence validation, retrieval and MCP-based interoperability.
 
 Built by [@yerageracharan](https://github.com/yerageracharan).
