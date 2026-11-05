@@ -1,100 +1,100 @@
-"""Streamlit interface for the Personal Knowledge Graph Agent."""
-from pathlib import Path
-import streamlit as st
+"""Streamlit UI for a local-first, provider-independent personal knowledge graph."""
+import os
 import networkx as nx
-from pyvis.network import Network
+import streamlit as st
 import streamlit.components.v1 as components
+from pyvis.network import Network
 
-from src.ingestion import extract_text
-from src.extraction import extract_entities, extract_relationships
-from src.store import KnowledgeStore
-from src.search import retrieve
+from src.llm import LLMConfig
+from src.service import KnowledgeService
 
-st.set_page_config(page_title="Personal Knowledge Graph", page_icon="🧠", layout="wide")
+st.set_page_config(page_title="Personal Knowledge Graph Agent", page_icon="🧠", layout="wide")
 st.title("Personal Knowledge Graph Agent")
-st.caption("Turn scattered documents into connected, searchable knowledge. Runs locally; no API key required.")
-
-@st.cache_resource
-def get_store():
-    return KnowledgeStore()
-store = get_store()
+st.caption("Your documents, connected. Choose a model provider—or run entirely locally without one.")
 
 with st.sidebar:
+    st.header("Model settings")
+    default_provider=os.getenv("LLM_PROVIDER","none")
+    providers=["none","openai","anthropic","ollama","openai-compatible"]
+    provider=st.selectbox("LLM provider",providers,index=providers.index(default_provider) if default_provider in providers else 0,
+        help="Choose none for local heuristic extraction and retrieval.")
+    env_model=os.getenv("LLM_MODEL","")
+    model=st.text_input("Model ID",value=env_model,placeholder="e.g. gpt-4o-mini, claude model ID, llama3.1")
+    env_url=os.getenv("LLM_BASE_URL","")
+    base_url=st.text_input("API base URL (for Ollama or compatible APIs)",value=env_url,
+        placeholder="http://localhost:11434/v1")
+    env_key=os.getenv("LLM_API_KEY","")
+    api_key=st.text_input("API key",value=env_key,type="password",
+        help="Kept in this Streamlit session; do not commit API keys.")
+    st.caption("For Ollama, leave the API key blank. For ChatGPT/Claude assistant integrations, see docs/PROVIDERS.md.")
+    config=LLMConfig(provider=provider,model=model,api_key=api_key,base_url=base_url)
+    st.divider()
     st.header("Add knowledge")
-    uploads = st.file_uploader("Upload TXT, Markdown or PDF files", type=["txt", "md", "pdf"], accept_multiple_files=True)
-    if st.button("Process documents", type="primary", disabled=not uploads):
-        added, skipped = 0, 0
-        progress = st.progress(0)
-        for i, file in enumerate(uploads):
+    uploads=st.file_uploader("Upload TXT, Markdown or PDF",type=["txt","md","pdf"],accept_multiple_files=True)
+    if st.button("Process documents",type="primary",disabled=not uploads):
+        service=KnowledgeService(llm_config=config)
+        progress=st.progress(0)
+        for i,file in enumerate(uploads):
             try:
-                text = extract_text(file.name, file.getvalue())
-                if not text:
-                    st.warning(f"No extractable text found in {file.name}")
-                    continue
-                entities = extract_entities(text)
-                edges = extract_relationships(text, entities)
-                if store.add_document(file.name, text, entities, edges):
-                    added += 1
+                result=service.ingest(file.name,file.getvalue())
+                if result["added"]:
+                    st.success(f'{file.name}: {result["entities"]} entities, {result["relationships"]} relationships ({result["extraction"]})')
                 else:
-                    skipped += 1
+                    st.info(f"{file.name}: already indexed; rename it to ingest a revised copy.")
             except Exception as exc:
                 st.error(f"{file.name}: {exc}")
-            progress.progress((i + 1) / len(uploads))
-        st.success(f"Added {added} document(s); skipped {skipped} duplicate(s).")
+            progress.progress((i+1)/len(uploads))
 
-stats = store.stats()
-cols = st.columns(3)
-for col, (label, value) in zip(cols, stats.items()):
-    col.metric(label.title(), value)
+service=KnowledgeService(llm_config=config)
+stats=service.store.stats()
+cols=st.columns(3)
+for col,(label,value) in zip(cols,stats.items()): col.metric(label.title(),value)
 
-tab_graph, tab_search, tab_entities, tab_sources = st.tabs(["Knowledge graph", "Ask your knowledge", "Entities & relations", "Sources"])
+tab_graph,tab_ask,tab_data,tab_sources=st.tabs(["Knowledge graph","Ask your knowledge","Entities & relationships","Sources"])
 with tab_graph:
-    edges = store.all_relationships()
-    entities = store.all_entities()
-    if not entities:
-        st.info("Upload a few documents to start building your graph.")
+    graph_data=service.graph()
+    if not graph_data["entities"]:
+        st.info("Upload a few documents to build your first graph.")
     else:
-        graph = nx.Graph()
-        for e in entities:
-            graph.add_node(e["name"], mentions=e["mentions"])
-        for edge in edges:
-            graph.add_edge(edge["source"], edge["target"], label=edge["label"])
-        net = Network(height="620px", width="100%", bgcolor="#0e1117", font_color="white", notebook=False)
+        graph=nx.Graph()
+        for entity in graph_data["entities"]: graph.add_node(entity["name"],mentions=entity["mentions"])
+        for edge in graph_data["relationships"]:
+            graph.add_edge(edge["source"],edge["target"],label=edge["label"],title=edge["evidence"])
+        net=Network(height="640px",width="100%",bgcolor="#0e1117",font_color="white",notebook=False)
         net.from_nx(graph)
         for node in net.nodes:
-            node["title"] = f'{node["label"]} · mentions: {graph.nodes[node["label"]].get("mentions", 1)}'
-            node["size"] = 12 + min(25, graph.nodes[node["label"]].get("mentions", 1) * 3)
-        for edge in net.edges:
-            edge["title"] = edge.get("label", "MENTIONED_WITH")
-        html = net.generate_html()
-        components.html(html, height=640, scrolling=True)
+            count=graph.nodes[node["label"]].get("mentions",1)
+            node["title"]=f'{node["label"]} · mentions: {count}'
+            node["size"]=12+min(30,count*3)
+        for edge in net.edges: edge["title"]=edge.get("label","RELATED")
+        components.html(net.generate_html(),height=660,scrolling=True)
+        st.caption("Edges are candidate relationships, not guaranteed facts. Inspect their source evidence in the relationships tab.")
 
-with tab_search:
-    question = st.text_input("What do you want to know?", placeholder="How are Python and the knowledge graph connected?")
-    if st.button("Search knowledge") and question:
-        results = retrieve(question, store.get_document_texts())
-        if not results:
-            st.warning("No matching evidence found. Try different keywords or add more documents.")
-        for result in results:
-            st.markdown(f'**{result["source"]}** · relevance {result["score"]:.2f}')
-            st.write(result["text"])
-            st.divider()
-    st.caption("Answers are evidence snippets ranked by local TF-IDF retrieval, not generated claims.")
+with tab_ask:
+    st.write(f"Active model: **{provider}**" + (f" / {model}" if model else " (retrieval-only mode)"))
+    question=st.text_input("Ask a question about your documents",placeholder="What connects my AI projects and the tools I use?")
+    if st.button("Ask",type="primary",disabled=not question.strip()):
+        with st.spinner("Searching your knowledge..."):
+            result=service.ask(question)
+        st.markdown(result["answer"])
+        st.caption(f'Response mode: {result.get("mode","retrieval")}')
+        with st.expander("Retrieved source evidence",expanded=True):
+            for i,item in enumerate(result.get("evidence",[]),1):
+                st.markdown(f'**[{i}] {item["source"]}** · relevance {item["score"]:.3f}')
+                st.write(item["text"])
 
-with tab_entities:
-    left, right = st.columns(2)
+with tab_data:
+    left,right=st.columns(2)
     with left:
         st.subheader("Entities")
-        st.dataframe([dict(x) for x in store.all_entities()], use_container_width=True, hide_index=True)
+        st.dataframe(graph_data["entities"],use_container_width=True,hide_index=True)
     with right:
-        st.subheader("Relationships")
-        st.dataframe([dict(x) for x in store.all_relationships()], use_container_width=True, hide_index=True)
+        st.subheader("Relationships and evidence")
+        st.dataframe(graph_data["relationships"],use_container_width=True,hide_index=True)
 
 with tab_sources:
     st.subheader("Indexed documents")
-    docs = store.documents()
-    if docs:
-        st.dataframe([dict(x) for x in docs], use_container_width=True, hide_index=True)
-    else:
-        st.info("No documents indexed yet.")
-    st.caption("Local database: data/knowledge.db")
+    docs=service.store.documents()
+    if docs: st.dataframe([dict(x) for x in docs],use_container_width=True,hide_index=True)
+    else: st.info("No documents indexed yet.")
+    st.caption("Database: data/knowledge.db. Your document files and database stay local unless you send text to a configured hosted model.")
