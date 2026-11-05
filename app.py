@@ -1,5 +1,7 @@
 """Streamlit UI for a local-first, provider-independent personal knowledge graph."""
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import networkx as nx
 import streamlit as st
 import streamlit.components.v1 as components
