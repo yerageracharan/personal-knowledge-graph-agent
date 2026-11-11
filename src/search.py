@@ -31,9 +31,15 @@ def retrieve(query: str, documents: Sequence[Mapping[str, Any]], limit: int = 5)
 
     chunks: list[dict[str, str]] = []
     for index, row in enumerate(documents):
-        if not isinstance(row, Mapping):
+        if isinstance(row, Mapping):
+            record = row
+        elif callable(getattr(row, "keys", None)) and hasattr(row, "__getitem__"):
+            # sqlite3.Row supports keyed access and keys(), but is not registered
+            # as collections.abc.Mapping.
+            record = {key: row[key] for key in row.keys()}
+        else:
             raise TypeError(f"documents[{index}] must be a mapping with name and text fields")
-        name, text = row.get("name"), row.get("text")
+        name, text = record.get("name"), record.get("text")
         if not isinstance(name, str) or not isinstance(text, str):
             raise ValueError(f"documents[{index}] must contain string 'name' and 'text' fields")
         for part in re.split(r"(?<=[.!?])\\s+|\\n+", text):

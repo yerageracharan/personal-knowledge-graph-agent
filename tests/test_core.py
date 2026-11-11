@@ -50,3 +50,17 @@ def test_retrieval_rejects_malformed_document_records():
 
 def test_retrieval_handles_punctuation_only_corpus():
     assert retrieve("!!!", [{"name": "notes.md", "text": "!!! ??? ..."}]) == []
+
+
+def test_retrieval_accepts_sqlite_rows_from_knowledge_store():
+    import sqlite3
+
+    connection = sqlite3.connect(":memory:")
+    connection.row_factory = sqlite3.Row
+    row = connection.execute(
+        "SELECT ? AS name, ? AS text",
+        ("notes.md", "NetworkX stores graph relationships for knowledge retrieval."),
+    ).fetchone()
+    results = retrieve("NetworkX graph relationships", [row])
+    assert results and results[0]["source"] == "notes.md"
+    connection.close()
