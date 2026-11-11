@@ -113,6 +113,11 @@ Explore your information visually.
 
 ### 🔎 Knowledge retrieval
 
+![Knowledge graph retrieval loop](docs/visuals/02-retrieval-loop.svg)
+
+*Retrieval follows connected concepts while keeping the source trail attached to the answer.*
+
+
 Find relevant passages from your own documents.
 
 - Local TF-IDF retrieval
@@ -141,6 +146,11 @@ Expose the knowledge base through MCP.
 ---
 
 ## 🧭 How it works
+
+![Knowledge ingestion and graph pipeline](docs/visuals/01-knowledge-pipeline.svg)
+
+*Documents become source-linked entities and relationships that can be explored later.*
+
 
 <div align="center">
 
