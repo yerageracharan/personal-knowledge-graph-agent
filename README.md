@@ -14,7 +14,7 @@
 <br/>
 
 [![Agent Challenge](https://img.shields.io/badge/200%20AI%20Agents-Agent%20%2307-7C3AED?style=for-the-badge)](https://github.com/yerageracharan)
-[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![MCP](https://img.shields.io/badge/Integrations-MCP-111827?style=for-the-badge)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/License-MIT-informational?style=for-the-badge)](LICENSE)
@@ -194,7 +194,7 @@ flowchart TD
 | Requirement | Details |
 |---|---|
 | Operating system | Windows, macOS or Linux |
-| Python | 3.10 or newer recommended |
+| Python | 3.11 or newer |
 | Git | Required to clone and update the project |
 | Internet | Needed to install dependencies and use hosted APIs |
 | LLM API key | Optional — only required for hosted providers |
