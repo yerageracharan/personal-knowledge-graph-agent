@@ -7,7 +7,7 @@
 
 # 🧠 Personal Knowledge Graph Agent
 
-[Developer documentation map](docs/README.md) · [Provider guide](docs/PROVIDERS.md) · [Dependency policy](docs/dependency-policy.md)
+[Developer documentation map](docs/README.md) · [Provider guide](docs/PROVIDERS.md) · [Dependency policy](docs/dependency-policy.md) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md)
 
 ### Your knowledge shouldn't live in disconnected files.
 
@@ -20,6 +20,7 @@
 [![Streamlit](https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://streamlit.io/)
 [![MCP](https://img.shields.io/badge/Integrations-MCP-111827?style=for-the-badge)](https://modelcontextprotocol.io/)
 [![License](https://img.shields.io/badge/License-MIT-informational?style=for-the-badge)](LICENSE)
+[![Tests](https://github.com/yerageracharan/personal-knowledge-graph-agent/actions/workflows/tests.yml/badge.svg?branch=main)](https://github.com/yerageracharan/personal-knowledge-graph-agent/actions/workflows/tests.yml)
 
 <br/>
 
