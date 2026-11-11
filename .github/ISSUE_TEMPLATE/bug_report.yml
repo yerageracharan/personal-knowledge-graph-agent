@@ -1,0 +1,46 @@
+name: Bug report
+description: Report a reproducible graph, ingestion, or retrieval defect.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: "Use synthetic documents. Do not attach personal notes, private PDFs, credentials, or API keys."
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction
+      description: Include synthetic source text, exact command, and expected graph/search result.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior and source evidence
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and redacted logs
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Document ingestion
+        - Entity/relationship extraction
+        - SQLite storage or migration
+        - Search/retrieval
+        - Streamlit UI / MCP
+        - Provider/privacy handling
+        - Other
+    validations:
+      required: true
