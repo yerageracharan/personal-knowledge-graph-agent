@@ -7,6 +7,8 @@
 
 # 🧠 Personal Knowledge Graph Agent
 
+[Developer documentation map](docs/README.md) · [Provider guide](docs/PROVIDERS.md) · [Dependency policy](docs/dependency-policy.md)
+
 ### Your knowledge shouldn't live in disconnected files.
 
 **Turn documents, notes, research and ideas into a connected, searchable knowledge graph — powered by the LLM you choose.**
